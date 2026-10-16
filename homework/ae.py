@@ -156,13 +156,15 @@ class PatchAutoEncoder(torch.nn.Module, PatchAutoEncoderBase):
               torch.nn.Conv2d(
                 in_channels=bottleneck,
                 out_channels=bottleneck,
-                kernel_size=3
+                kernel_size=3,
+                padding=1
               ),
               torch.nn.ReLU(),
               torch.nn.Conv2d(
                 in_channels=bottleneck,
                 out_channels=latent_dim,
-                kernel_size=3
+                kernel_size=3,
+                padding=1
               )
             )
             
