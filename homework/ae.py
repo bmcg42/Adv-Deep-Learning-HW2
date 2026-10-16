@@ -114,36 +114,65 @@ class PatchAutoEncoder(torch.nn.Module, PatchAutoEncoderBase):
 
         def __init__(self, patch_size: int, latent_dim: int, bottleneck: int):
             super().__init__()
-            #raise NotImplementedError()
-            self.patchifyNonLinear = torch.nn.Sequential(
-              # Down sample with patches
-              PatchifyLinear(
-                patch_size=patch_size,
-                latent_dim=latent_dim
+            # Down sample with patches
+            self.patchify = PatchifyLinear(
+              patch_size=patch_size,
+              latent_dim=latent_dim
+            )
+            # Add two layers of embedding processing with k=3
+            self.process = torch.nn.Sequential(
+              torch.nn.Conv2d(
+                in_channels=latent_dim,
+                out_channels=bottleneck,
+                kernel_size=3,
+                padding=1
               ),
-              # Non-linearity
+              torch.nn.ReLU(),
+              torch.nn.Conv2d(
+                in_channels=bottleneck,
+                out_channels=bottleneck,
+                kernel_size=3,
+                padding=1
+              ),
               torch.nn.ReLU()
             )
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
-            #raise NotImplementedError()
-            return self.patchifyNonLinear(x)
+            x = self.patchify(x)  # NHWC
+            x = hwc_to_chw(x)     # NCHW
+            x = self.process(x)
+            return chw_to_hwc(x)  # NHWC
 
     class PatchDecoder(torch.nn.Module):
         def __init__(self, patch_size: int, latent_dim: int, bottleneck: int):
             super().__init__()
-            self.unpatchifyNonLinear = torch.nn.Sequential(
-              # Down sample with patches
-              UnpatchifyLinear(
-                patch_size=patch_size,
-                latent_dim=latent_dim
-              ),
-              # Non-linearity
-              torch.nn.ReLU()
+            # Down sample with patches
+            self.unpatchify = UnpatchifyLinear(
+              patch_size=patch_size,
+              latent_dim=latent_dim
             )
+            # Add two layers of embedding processing with k=3
+            self.process = torch.nn.Sequential(
+              torch.nn.Conv2d(
+                in_channels=bottleneck,
+                out_channels=bottleneck,
+                kernel_size=3
+              ),
+              torch.nn.ReLU(),
+              torch.nn.Conv2d(
+                in_channels=bottleneck,
+                out_channels=latent_dim,
+                kernel_size=3
+              )
+            )
+            
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
-            return self.unpatchifyNonLinear(x)
+            x = hwc_to_chw(x)     # NCHW
+            x = self.process(x)
+            x = chw_to_hwc(x)  # NHWC
+            
+            return self.unpatchify(x) # NHWC
 
     def __init__(self, patch_size: int = 25, latent_dim: int = 128, bottleneck: int = 128):
         super().__init__()
