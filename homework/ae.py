@@ -174,7 +174,7 @@ class PatchAutoEncoder(torch.nn.Module, PatchAutoEncoderBase):
             
             return self.unpatchify(x) # NHWC
 
-    def __init__(self, patch_size: int = 25, latent_dim: int = 128, bottleneck: int = 128):
+    def __init__(self, patch_size: int = 10, latent_dim: int = 128, bottleneck: int = 64):
         super().__init__()
         self.Encoder = self.PatchEncoder(patch_size,latent_dim,bottleneck)
         self.Decoder = self.PatchDecoder(patch_size,latent_dim,bottleneck)
