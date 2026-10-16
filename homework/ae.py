@@ -114,18 +114,36 @@ class PatchAutoEncoder(torch.nn.Module, PatchAutoEncoderBase):
 
         def __init__(self, patch_size: int, latent_dim: int, bottleneck: int):
             super().__init__()
-            raise NotImplementedError()
+            #raise NotImplementedError()
+            self.patchifyNonLinear = torch.nn.Sequential(
+              # Down sample with patches
+              PatchifyLinear(
+                patch_size=patch_size,
+                latent_dim=latent_dim
+              ),
+              # Non-linearity
+              torch.nn.ReLU()
+            )
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
-            raise NotImplementedError()
+            #raise NotImplementedError()
+            return self.patchifyNonLinear(x)
 
     class PatchDecoder(torch.nn.Module):
         def __init__(self, patch_size: int, latent_dim: int, bottleneck: int):
             super().__init__()
-            raise NotImplementedError()
+            self.unpatchifyNonLinear = torch.nn.Sequential(
+              # Down sample with patches
+              UnpatchifyLinear(
+                patch_size=patch_size,
+                latent_dim=latent_dim
+              ),
+              # Non-linearity
+              torch.nn.ReLU()
+            )
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
-            raise NotImplementedError()
+            return self.unpatchifyNonLinear(x)
 
     def __init__(self, patch_size: int = 25, latent_dim: int = 128, bottleneck: int = 128):
         super().__init__()
