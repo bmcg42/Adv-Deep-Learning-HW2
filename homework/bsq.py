@@ -46,10 +46,12 @@ class Tokenizer(abc.ABC):
 class BSQ(torch.nn.Module):
     def __init__(self, codebook_bits: int, embedding_dim: int):
         super().__init__()
+        # Number of codebook bits
+        self._codebook_bits = codebook_bits
         # Down sampler
         self.linear_down = torch.nn.Linear(embedding_dim,codebook_bits)
         # Up sampler
-        self.linear_up = torch.nn.linear(codebook_bits,embedding_dim)
+        self.Linear_up = torch.nn.linear(codebook_bits,embedding_dim)
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -111,15 +113,10 @@ class BSQPatchAutoEncoder(PatchAutoEncoder, Tokenizer):
         return self.bsq.decode_index(x)
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
-        x = super().encode(x)
-        x = self.bsq.encode(x)
-        return self.encode_index(x)
-        
+        return self.bsq.encode(super().encode(x))        
 
     def decode(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.decode_index(x)
-        x = self.bsq.decode(x)
-        return super().decode(x)
+        return super().decode(self.bsq.decode(x))
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         """
@@ -137,4 +134,9 @@ class BSQPatchAutoEncoder(PatchAutoEncoder, Tokenizer):
                 ...
               }
         """
-        return self.decode(self.encode(x))
+        cnt = torch.bincount(self.encode_index(x).flatten(), minlength=2**self.codebook_bits)
+        diagnostics = {
+          "cb0": (cnt == 0).float().mean().detach(),
+          "cb2": (cnt <= 2).float().mean().detach()
+        }
+        return self.decode(self.encode(x)), diagnostics
