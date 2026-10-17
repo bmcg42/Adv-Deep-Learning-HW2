@@ -55,10 +55,34 @@ class AutoregressiveModel(torch.nn.Module, Autoregressive):
 
     def __init__(self, d_latent: int = 128, n_tokens: int = 2**10):
         super().__init__()
-        raise NotImplementedError()
+        # Embed tokens
+        self.embed = torch.nn.Embedding(n_tokens,d_latent)
+        # Define transformer architecture
+        self.transformerEmbedder = torch.nn.TransformerEncoder(
+          torch.nn.TransformerEncoderLayer(d_latent,4),
+          num_layers=3
+        )
+        # Output layer
+        self.linear = torch.nn.Linear(d_latent,n_tokens)
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-        raise NotImplementedError()
+        # flatten tokens
+        B, h, w = x.shape
+        x = x.flatten(start_dim=1)
+        # Embed
+        x = self.embed(x)
+        # Shift right one
+        shift_val = 1
+        x = torch.nn.functional.pad(x[:,:-shift_val], (shift_val, 0), value=0)
+        # Create mask
+        L = x.size(1)
+        mask = torch.triu(torch.ones(L, L, dtype=torch.bool), diagonal=1)
+        # Process tokens
+        x = self.transformerEmbedder(x, mask = mask)
+        # Convert to logits
+        x = self.linear(x)
+
+        return x.reshape(B, h, w, -1), {}
 
     def generate(self, B: int = 1, h: int = 30, w: int = 20, device=None) -> torch.Tensor:  # noqa
         raise NotImplementedError()
