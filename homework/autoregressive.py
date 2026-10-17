@@ -59,7 +59,7 @@ class AutoregressiveModel(torch.nn.Module, Autoregressive):
         self.embed = torch.nn.Embedding(n_tokens,d_latent)
         # Define transformer architecture
         self.transformerEmbedder = torch.nn.TransformerEncoder(
-          torch.nn.TransformerEncoderLayer(d_latent,4),
+          torch.nn.TransformerEncoderLayer(d_latent,4,batch_first=True),
           num_layers=3
         )
         # Output layer
@@ -72,11 +72,16 @@ class AutoregressiveModel(torch.nn.Module, Autoregressive):
         # Embed
         x = self.embed(x)
         # Shift right one
-        shift_val = 1
-        x = torch.nn.functional.pad(x[:,:-shift_val], (shift_val, 0), value=0)
+        x = torch.cat([
+                torch.zeros_like(x[:, :1, :]),
+                x[:, :-1, :]
+            ], dim=1)
         # Create mask
         L = x.size(1)
-        mask = torch.triu(torch.ones(L, L, dtype=torch.bool), diagonal=1)
+        mask = torch.triu(
+                    torch.ones(L, L, dtype=torch.bool, device=x.device),
+                    diagonal=1
+                )
         # Process tokens
         x = self.transformerEmbedder(x, mask = mask)
         # Convert to logits
