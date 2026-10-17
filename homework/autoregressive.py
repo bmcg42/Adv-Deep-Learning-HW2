@@ -90,4 +90,17 @@ class AutoregressiveModel(torch.nn.Module, Autoregressive):
         return x.reshape(B, h, w, -1), {}
 
     def generate(self, B: int = 1, h: int = 30, w: int = 20, device=None) -> torch.Tensor:  # noqa
-        raise NotImplementedError()
+        # Create empty tensor
+        x = torch.zeros((B, h * w), dtype=torch.long, device=device)
+        # Call forward on each position
+        for i in range(h * w):
+            logits, _ = self.forward(x.reshape(B, h, w))
+            # Select predictions at position i
+            logits = logits.flatten(start_dim=1, end_dim=2)
+            next_logits = logits[:, i, :]
+            # Sample the next token and store it
+            probs = torch.softmax(next_logits, dim=-1)
+            # Sample and store the next token
+            x[:, i] = torch.multinomial(probs, num_samples=1).squeeze(-1)
+
+        return x.reshape(B,h,w)
