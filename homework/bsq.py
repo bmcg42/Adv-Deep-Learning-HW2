@@ -51,7 +51,7 @@ class BSQ(torch.nn.Module):
         # Down sampler
         self.linear_down = torch.nn.Linear(embedding_dim,codebook_bits)
         # Up sampler
-        self.Linear_up = torch.nn.linear(codebook_bits,embedding_dim)
+        self.linear_up = torch.nn.Linear(codebook_bits,embedding_dim)
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         """
